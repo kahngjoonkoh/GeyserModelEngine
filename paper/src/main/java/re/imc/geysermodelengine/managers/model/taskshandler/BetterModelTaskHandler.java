@@ -27,6 +27,7 @@ public class BetterModelTaskHandler implements TaskHandler {
     private final BetterModelEntityData entityData;
 
     private int tick = 0;
+    private int runs = 0;
     private int syncTick = 0;
 
     private float lastScale = -1.0f;
@@ -50,21 +51,23 @@ public class BetterModelTaskHandler implements TaskHandler {
             } catch (Throwable err) {
                 err.printStackTrace();
             }
-        }, 0, 20, TimeUnit.MILLISECONDS);
+        }, 0, 50, TimeUnit.MILLISECONDS); // cobblemon-link: the server tick; the source entity moves no faster
     }
 
     @Override
     public void runAsync() {
-        plugin.getEntityTaskManager().checkViewers(entityData, entityData.getViewers());
+        // cobblemon-link: look for new Bedrock viewers twice a second (not every run), and only follow the source
+        // entity while someone can see it (or right before such a check, so a new viewer spawns it in place)
+        boolean check = runs++ % 10 == 0;
+        Set<Player> viewers = entityData.getViewers();
+        if (check || !viewers.isEmpty()) entityData.teleportToModel();
+        if (check) plugin.getEntityTaskManager().checkViewers(entityData, viewers);
 
         PacketEntity entity = entityData.getEntity();
         if (entity.isDead()) return;
 
-        Set<Player> viewers = entityData.getViewers();
         BaseEntity entitySource = entityData.getEntitySource();
         EntityTracker entityTracker = entityData.getEntityTracker();
-
-        entityData.teleportToModel();
 
         if (entitySource.dead() || entityTracker.forRemoval()) {
             removed = true;

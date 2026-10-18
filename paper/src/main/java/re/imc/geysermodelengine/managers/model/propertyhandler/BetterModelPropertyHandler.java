@@ -34,7 +34,9 @@ public class BetterModelPropertyHandler implements PropertyHandler {
         Tracker tracker = (Tracker) betterModelEntityData.getModelInstance();
         ModelScaler scaler = tracker.scaler();
         var scale = scaler.scale(tracker);
+        if (!firstSend && scale == lastScale) return; // cobblemon-link: only changes (was sent every run)
         players.forEach(player -> EntityUtils.sendCustomScale(player, betterModelEntityData.getEntity().getEntityId(), scale));
+        if (!firstSend) betterModelEntityData.getEntityTask().setLastScale(scale);
     }
 
     @Override
@@ -46,9 +48,8 @@ public class BetterModelPropertyHandler implements PropertyHandler {
         Color color = new Color(0xFFFFFF);
         if (betterModelEntityData.isHurt()) color = new Color(betterModelEntityData.getEntityTracker().damageTintValue());
 
-        if (firstSend) {
-            if (color.equals(lastColor)) return;
-        }
+        if (!firstSend && color.equals(lastColor)) return; // cobblemon-link: the check was inverted (sent every run)
+        if (!firstSend) betterModelEntityData.getEntityTask().setLastColor(color);
 
         for (Player player : players) {
             EntityUtils.sendCustomColor(player, betterModelEntityData.getEntity().getEntityId(), color);
